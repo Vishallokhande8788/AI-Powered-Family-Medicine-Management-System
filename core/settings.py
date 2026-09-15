@@ -26,6 +26,9 @@ SECRET_KEY = "django-insecure--jvoncx(uii8#yc7ta5b*&f-6r3(^kwe^b6do(*vk08lh$t!21
 DEBUG = True
 
 ALLOWED_HOSTS = []
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # your React dev server
+]
 
 
 # Application definition
@@ -37,6 +40,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
+    'users',
+    'family',
+    'medicines',
+
 ]
 
 MIDDLEWARE = [
@@ -47,6 +57,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
+
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -124,4 +136,11 @@ MAILERS = {
     "default": {
         "BACKEND": "django.core.mail.backends.console.EmailBackend",
     },
+}
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
 }
