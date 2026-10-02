@@ -15,3 +15,30 @@ MedicineSchedule
      │ 1 → Many
      ↓
 MedicineLog
+
+
+
+
+<!-- data base structure after patient medical history traccking  -->
+
+                     User
+                       │
+                       ↓
+                 FamilyMember
+                       │
+        ┌──────────────┼──────────────┐
+        ↓              ↓              ↓
+ MedicalHistory     Doctor       MedicalDocument
+                       │
+                       │
+                       └──────────────┐
+                                      ↓
+                                   Medicines
+                                      ↓
+                              MedicineSchedule
+                                      ↓
+                                 MedicineLog
+
+                 FamilyMember
+                       ↓
+                  VitalRecord 
