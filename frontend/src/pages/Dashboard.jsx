@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import api from "../api";
+
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import StatCard from "../components/StatCard";
@@ -5,23 +8,58 @@ import MedicineCard from "../components/MedicineCard";
 import QuickActionCard from "../components/QuickActionCard";
 
 function Dashboard({ username, onLogout }) {
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [medicines, setMedicines] = useState([]);
+
+  useEffect(() => {
+    const accessToken = localStorage.getItem("access");
+
+    api.defaults.headers.common["Authorization"] =
+      `Bearer ${accessToken}`;
+
+    // Get Family Members
+    api
+      .get("family/family-members/")
+      .then((response) => {
+        console.log("Family Members:", response.data);
+        setFamilyMembers(response.data);
+      })
+      .catch((error) => {
+        console.log(
+          "Family Members Error:",
+          error.response?.data
+        );
+      });
+
+    // Get Medicines
+    api
+      .get("medicines/medicines/")
+      .then((response) => {
+        console.log("Medicines:", response.data);
+        setMedicines(response.data);
+      })
+      .catch((error) => {
+        console.log(
+          "Medicines Error:",
+          error.response?.data
+        );
+      });
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50">
-
       <Navbar
         username={username}
         onLogout={onLogout}
       />
 
       <div className="flex">
-
         <Sidebar />
 
         <main className="flex-1 p-6 md:p-10">
 
           {/* WELCOME */}
           <div className="mb-8">
-
             <p className="text-blue-600 font-semibold text-sm">
               GOOD MORNING 👋
             </p>
@@ -33,7 +71,6 @@ function Dashboard({ username, onLogout }) {
             <p className="text-slate-500 mt-2">
               Here's what's happening with your family's health today.
             </p>
-
           </div>
 
           {/* STAT CARDS */}
@@ -42,13 +79,13 @@ function Dashboard({ username, onLogout }) {
             <StatCard
               icon="👨‍👩‍👧"
               title="Family Members"
-              value="1"
+              value={familyMembers.length}
             />
 
             <StatCard
               icon="💊"
               title="Today's Medicines"
-              value="1"
+              value={medicines.length}
             />
 
             <StatCard
@@ -83,18 +120,28 @@ function Dashboard({ username, onLogout }) {
               </div>
 
               <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-sm font-medium">
-                1 Taken
+                {medicines.length} Medicines
               </span>
 
             </div>
 
-            <MedicineCard
-              name="Test Medicine"
-              dosage="1 tablet"
-              mealRelation="After food"
-              time="08:00 AM"
-              status="taken"
-            />
+            {/* MEDICINE LIST */}
+            {medicines.length > 0 ? (
+              medicines.map((medicine) => (
+                <MedicineCard
+                  key={medicine.id}
+                  name={medicine.name}
+                  dosage={medicine.dosage}
+                  mealRelation={medicine.instructions}
+                  time="Scheduled"
+                  status="pending"
+                />
+              ))
+            ) : (
+              <div className="text-center py-10 text-slate-500">
+                No medicines found.
+              </div>
+            )}
 
           </div>
 
@@ -137,9 +184,7 @@ function Dashboard({ username, onLogout }) {
           </div>
 
         </main>
-
       </div>
-
     </div>
   );
 }
