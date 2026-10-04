@@ -41,6 +41,16 @@ class MedicalHistoryViewSet(viewsets.ModelViewSet):
             family_member__user=self.request.user
         )
 
+    def perform_create(self, serializer):
+        family_member = serializer.validated_data["family_member"]
+
+        if family_member.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "You can only add medical history for your own family members."
+            )
+
+        serializer.save()
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
@@ -51,6 +61,16 @@ class DoctorViewSet(viewsets.ModelViewSet):
             family_member__user=self.request.user
         )
 
+    def perform_create(self, serializer):
+        family_member = serializer.validated_data["family_member"]
+
+        if family_member.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "You can only add doctors for your own family members."
+            )
+
+        serializer.save()
 
 class MedicalDocumentViewSet(viewsets.ModelViewSet):
     queryset = MedicalDocument.objects.all()
@@ -62,6 +82,16 @@ class MedicalDocumentViewSet(viewsets.ModelViewSet):
             family_member__user=self.request.user
         )
 
+    def perform_create(self, serializer):
+        family_member = serializer.validated_data["family_member"]
+
+        if family_member.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "You can only add documents for your own family members."
+            )
+
+        serializer.save()
 
 class VitalRecordViewSet(viewsets.ModelViewSet):
     queryset = VitalRecord.objects.all()
@@ -72,3 +102,14 @@ class VitalRecordViewSet(viewsets.ModelViewSet):
         return VitalRecord.objects.filter(
             family_member__user=self.request.user
         )
+
+    def perform_create(self, serializer):
+        family_member = serializer.validated_data["family_member"]
+
+        if family_member.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "You can only add vital records for your own family members."
+            )
+
+        serializer.save()
