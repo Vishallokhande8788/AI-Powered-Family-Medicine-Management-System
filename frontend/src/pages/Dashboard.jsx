@@ -12,6 +12,17 @@ function Dashboard({ username, onLogout, onNavigate }) {
   const [medicines, setMedicines] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [claims, setClaims] = useState([]);
+
+  const getDaysRemaining = (renewalDate) => {
+    const today = new Date();
+    const renewal = new Date(renewalDate);
+
+    today.setHours(0, 0, 0, 0);
+    renewal.setHours(0, 0, 0, 0);
+
+    return Math.ceil((renewal - today) / (1000 * 60 * 60 * 24));
+  };
 
   useEffect(() => {
     const accessToken = localStorage.getItem("access");
@@ -51,6 +62,17 @@ function Dashboard({ username, onLogout, onNavigate }) {
         console.log("Schedules Error:", error.response?.data);
       });
 
+    // Get Medical Claims
+    api
+      .get("family/medical-claims/")
+      .then((response) => {
+        console.log("Medical Claims:", response.data);
+        setClaims(response.data);
+      })
+      .catch((error) => {
+        console.log("Medical Claims Error:", error.response?.data);
+      });
+
     // Get Medicine Logs
     api
       .get("medicines/logs/")
@@ -85,6 +107,39 @@ function Dashboard({ username, onLogout, onNavigate }) {
               Here's what's happening with your family's health today.
             </p>
           </div>
+          {claims.map((claim) => {
+            const daysRemaining = getDaysRemaining(claim.renewal_date);
+
+            if (daysRemaining > 30) {
+              return null;
+            }
+
+            return (
+              <div
+                key={claim.id}
+                className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-5"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-3xl">🛡️</div>
+
+                  <div>
+                    <h3 className="font-bold text-orange-800">
+                      Medical Claim Renewal Alert
+                    </h3>
+
+                    <p className="text-sm text-orange-700 mt-1">
+                      {claim.claim_name} renewal is due on{" "}
+                      <strong>{claim.renewal_date}</strong>.
+                    </p>
+
+                    <p className="text-sm font-semibold text-orange-800 mt-2">
+                      ⚠️ Renewal in {daysRemaining} days
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
 
           {/* STAT CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -171,6 +226,12 @@ function Dashboard({ username, onLogout, onNavigate }) {
                 title="Family Members"
                 description="Manage family profiles"
                 onClick={() => onNavigate("family")}
+              />
+              <QuickActionCard
+                icon="🛡️"
+                title="Medical Claims"
+                description="Track renewal dates"
+                onClick={() => onNavigate("claims")}
               />
 
               <QuickActionCard

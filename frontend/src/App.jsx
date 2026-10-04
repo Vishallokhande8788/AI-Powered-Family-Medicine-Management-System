@@ -4,6 +4,7 @@ import api from "./api";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import FamilyMembers from "./pages/FamilyMembers";
+import MedicalClaims from "./pages/MedicalClaims";
 
 function App() {
   const [loggedIn, setLoggedIn] = useState(
@@ -40,6 +41,11 @@ function App() {
       <FamilyMembers />
     );
   }
+  if (currentPage === "claims") {
+  return (
+    <MedicalClaims />
+  );
+}
 
   return (
     <Dashboard
