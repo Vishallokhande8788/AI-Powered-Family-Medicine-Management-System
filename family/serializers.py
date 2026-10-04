@@ -12,6 +12,7 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = FamilyMember
         fields = "__all__"
+        read_only_fields = ["user"]
 
 
 class MedicalHistorySerializer(serializers.ModelSerializer):
