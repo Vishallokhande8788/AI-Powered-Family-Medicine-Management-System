@@ -9,6 +9,8 @@ from .models import (
     Doctor,
     MedicalDocument,
     VitalRecord,
+    MedicalClaim,
+
 )
 
 from .serializers import (
@@ -17,6 +19,8 @@ from .serializers import (
     DoctorSerializer,
     MedicalDocumentSerializer,
     VitalRecordSerializer,
+    MedicalClaimSerializer,
+
 )
 
 class FamilyMemberViewSet(viewsets.ModelViewSet):
@@ -110,6 +114,25 @@ class VitalRecordViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied(
                 "You can only add vital records for your own family members."
+            )
+
+        serializer.save()
+
+class MedicalClaimViewSet(viewsets.ModelViewSet):
+    serializer_class = MedicalClaimSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return MedicalClaim.objects.filter(
+            family_member__user=self.request.user
+        )
+
+    def perform_create(self, serializer):
+        family_member = serializer.validated_data["family_member"]
+
+        if family_member.user != self.request.user:
+            raise PermissionDenied(
+                "You can only add claims for your own family members."
             )
 
         serializer.save()

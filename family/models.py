@@ -114,3 +114,16 @@ class VitalRecord(models.Model):
 
     def __str__(self):
         return f"Vitals - {self.family_member.name}"
+
+class MedicalClaim(models.Model):
+    family_member = models.ForeignKey(
+        FamilyMember,
+        on_delete=models.CASCADE,
+        related_name="medical_claims"
+    )
+    claim_name = models.CharField(max_length=150)
+    renewal_date = models.DateField()
+    notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.claim_name} - {self.renewal_date}"

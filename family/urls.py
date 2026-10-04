@@ -5,6 +5,8 @@ from .views import (
     DoctorViewSet,
     MedicalDocumentViewSet,
     VitalRecordViewSet,
+    MedicalClaimViewSet,
+
 )
 
 router = DefaultRouter()
@@ -14,5 +16,10 @@ router.register("medical-history", MedicalHistoryViewSet)
 router.register("doctors", DoctorViewSet)
 router.register("documents", MedicalDocumentViewSet)
 router.register("vitals", VitalRecordViewSet)
+router.register(
+    "medical-claims",
+    MedicalClaimViewSet,
+    basename="medical-claim"
+)
 
 urlpatterns = router.urls

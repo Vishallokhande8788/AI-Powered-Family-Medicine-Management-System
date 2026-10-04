@@ -5,6 +5,8 @@ from .models import (
     Doctor,
     MedicalDocument,
     VitalRecord,
+    MedicalClaim,
+
 )
 
 
@@ -36,4 +38,9 @@ class MedicalDocumentSerializer(serializers.ModelSerializer):
 class VitalRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = VitalRecord
+        fields = "__all__"
+
+class MedicalClaimSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MedicalClaim
         fields = "__all__"
