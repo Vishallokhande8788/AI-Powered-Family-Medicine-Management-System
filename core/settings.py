@@ -28,7 +28,9 @@ DEBUG = True
 ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # your React dev server
+    "http://localhost:5173",
+    "https://stunning-waffle-97qxrrrpwr9wf7wxg-5173.app.github.dev"
+        # your React dev server
 ]
 
 
