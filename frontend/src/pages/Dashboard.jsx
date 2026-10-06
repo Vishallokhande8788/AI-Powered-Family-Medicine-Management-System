@@ -238,6 +238,7 @@ function Dashboard({ username, onLogout, onNavigate }) {
                 icon="💊"
                 title="Medicines"
                 description="Manage medicine schedules"
+                onClick={() => onNavigate("medicines")}
               />
 
               <QuickActionCard

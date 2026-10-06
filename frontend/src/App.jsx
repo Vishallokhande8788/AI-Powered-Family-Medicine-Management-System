@@ -1,6 +1,6 @@
 import { useState } from "react";
 import api from "./api";
-
+import Medicines from "./pages/Medicines";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import FamilyMembers from "./pages/FamilyMembers";
@@ -9,9 +9,7 @@ import MedicalClaims from "./pages/MedicalClaims";
 import HealthRecords from "./pages/HealthRecords";
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(
-    !!localStorage.getItem("access")
-  );
+  const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem("access"));
 
   const [username, setUsername] = useState("");
 
@@ -39,21 +37,17 @@ function App() {
   }
 
   if (currentPage === "family") {
-    return (
-      <FamilyMembers />
-    );
+    return <FamilyMembers />;
   }
   if (currentPage === "claims") {
-  return (
-    <MedicalClaims />
-  );
-}
-if (currentPage === "health") {
-  return (
-    <HealthRecords />
-  );
-}
-
+    return <MedicalClaims />;
+  }
+  if (currentPage === "health") {
+    return <HealthRecords />;
+  }
+  if (currentPage === "medicines") {
+    return <Medicines />;
+  }
   return (
     <Dashboard
       username={username}
