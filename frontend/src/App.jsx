@@ -6,6 +6,8 @@ import Dashboard from "./pages/Dashboard";
 import FamilyMembers from "./pages/FamilyMembers";
 import MedicalClaims from "./pages/MedicalClaims";
 
+import HealthRecords from "./pages/HealthRecords";
+
 function App() {
   const [loggedIn, setLoggedIn] = useState(
     !!localStorage.getItem("access")
@@ -44,6 +46,11 @@ function App() {
   if (currentPage === "claims") {
   return (
     <MedicalClaims />
+  );
+}
+if (currentPage === "health") {
+  return (
+    <HealthRecords />
   );
 }
 

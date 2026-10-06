@@ -244,6 +244,7 @@ function Dashboard({ username, onLogout, onNavigate }) {
                 icon="❤️"
                 title="Health Records"
                 description="View health information"
+                onClick={() => onNavigate("health")}
               />
 
               <QuickActionCard
