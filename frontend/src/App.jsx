@@ -8,6 +8,7 @@ import MedicalClaims from "./pages/MedicalClaims";
 import HealthRecords from "./pages/HealthRecords";
 import Medicines from "./pages/Medicines";
 import MedicalDocuments from "./pages/MedicalDocuments";
+import Doctors from "./pages/Doctors";
 
 function App() {
   const [loggedIn, setLoggedIn] = useState(
@@ -72,6 +73,10 @@ function App() {
   if (currentPage === "medicines") {
     return <Medicines />;
   }
+
+  if (currentPage === "doctors") {
+  return <Doctors />;
+}
 
   // Medical Documents
   if (currentPage === "documents") {
