@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
-import api from "../api";
 
-import Navbar from "../components/Navbar";
+import api from "../api";
 import Sidebar from "../components/Sidebar";
-import StatCard from "../components/StatCard";
-import MedicineCard from "../components/MedicineCard";
-import QuickActionCard from "../components/QuickActionCard";
 
 function Dashboard({ username, onLogout, onNavigate }) {
   const [familyMembers, setFamilyMembers] = useState([]);
@@ -14,250 +10,596 @@ function Dashboard({ username, onLogout, onNavigate }) {
   const [logs, setLogs] = useState([]);
   const [claims, setClaims] = useState([]);
 
-  const getDaysRemaining = (renewalDate) => {
-    const today = new Date();
-    const renewal = new Date(renewalDate);
+  const [loading, setLoading] = useState(true);
 
-    today.setHours(0, 0, 0, 0);
-    renewal.setHours(0, 0, 0, 0);
-
-    return Math.ceil((renewal - today) / (1000 * 60 * 60 * 24));
-  };
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const accessToken = localStorage.getItem("access");
-
-    api.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
-
-    // Get Family Members
-    api
-      .get("family/family-members/")
-      .then((response) => {
-        console.log("Family Members:", response.data);
-        setFamilyMembers(response.data);
-      })
-      .catch((error) => {
-        console.log("Family Members Error:", error.response?.data);
-      });
-
-    // Get Medicines
-    api
-      .get("medicines/medicines/")
-      .then((response) => {
-        console.log("Medicines:", response.data);
-        setMedicines(response.data);
-      })
-      .catch((error) => {
-        console.log("Medicines Error:", error.response?.data);
-      });
-
-    // Get Medicine Schedules
-    api
-      .get("medicines/schedules/")
-      .then((response) => {
-        console.log("Schedules:", response.data);
-        setSchedules(response.data);
-      })
-      .catch((error) => {
-        console.log("Schedules Error:", error.response?.data);
-      });
-
-    // Get Medical Claims
-    api
-      .get("family/medical-claims/")
-      .then((response) => {
-        console.log("Medical Claims:", response.data);
-        setClaims(response.data);
-      })
-      .catch((error) => {
-        console.log("Medical Claims Error:", error.response?.data);
-      });
-
-    // Get Medicine Logs
-    api
-      .get("medicines/logs/")
-      .then((response) => {
-        console.log("Logs:", response.data);
-        setLogs(response.data);
-      })
-      .catch((error) => {
-        console.log("Logs Error:", error.response?.data);
-      });
+    loadDashboardData();
   }, []);
 
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [
+        familyResponse,
+        medicinesResponse,
+        schedulesResponse,
+        logsResponse,
+        claimsResponse,
+      ] = await Promise.all([
+        api.get("family/family-members/"),
+        api.get("medicines/medicines/"),
+        api.get("medicines/schedules/"),
+        api.get("medicines/logs/"),
+        api.get("family/medical-claims/"),
+      ]);
+
+      setFamilyMembers(familyResponse.data);
+      setMedicines(medicinesResponse.data);
+      setSchedules(schedulesResponse.data);
+      setLogs(logsResponse.data);
+      setClaims(claimsResponse.data);
+    } catch (err) {
+      console.error("Dashboard error:", err);
+
+      setError(
+        "Unable to load dashboard data. Please login again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Today's date
+  const today = new Date().toISOString().split("T")[0];
+
+  // Today's schedules
+  const todaysSchedules = schedules.filter((schedule) => {
+    return (
+      schedule.start_date <= today &&
+      (!schedule.end_date || schedule.end_date >= today)
+    );
+  });
+
+  // Today's logs
+  const todaysLogs = logs.filter((log) => log.date === today);
+
+  // Taken medicines
+  const takenCount = todaysLogs.filter(
+    (log) => log.status === "taken"
+  ).length;
+
+  // Pending medicines
+  const pendingCount = todaysSchedules.length - takenCount;
+
+  // Get medicine information
+  const getMedicine = (medicineId) => {
+    return medicines.find(
+      (medicine) => medicine.id === medicineId
+    );
+  };
+
+  // Get today's medicine status
+  const getScheduleStatus = (scheduleId) => {
+    const log = todaysLogs.find(
+      (item) => item.schedule === scheduleId
+    );
+
+    if (!log) {
+      return "pending";
+    }
+
+    return log.status;
+  };
+
+  // Medical claim renewal
+  const getClaimDaysRemaining = (renewalDate) => {
+    const todayDate = new Date();
+    const renewal = new Date(renewalDate);
+
+    todayDate.setHours(0, 0, 0, 0);
+    renewal.setHours(0, 0, 0, 0);
+
+    const difference =
+      renewal.getTime() - todayDate.getTime();
+
+    return Math.ceil(
+      difference / (1000 * 60 * 60 * 24)
+    );
+  };
+
+  const upcomingClaim = claims
+    .map((claim) => ({
+      ...claim,
+      daysRemaining: getClaimDaysRemaining(
+        claim.renewal_date
+      ),
+    }))
+    .filter((claim) => claim.daysRemaining >= 0)
+    .sort(
+      (a, b) =>
+        a.daysRemaining - b.daysRemaining
+    )[0];
+
+  // Format time
+  const formatTime = (time) => {
+    if (!time) {
+      return "";
+    }
+
+    const [hours, minutes] = time.split(":");
+
+    const date = new Date();
+
+    date.setHours(
+      Number(hours),
+      Number(minutes),
+      0,
+      0
+    );
+
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+
+          <p className="text-sm text-gray-500">
+            Loading dashboard...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar username={username} onLogout={onLogout} />
+    <div className="flex min-h-screen bg-gray-50">
 
-      <div className="flex">
-        <Sidebar />
+      {/* SIDEBAR */}
+      <Sidebar
+        currentPage="dashboard"
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+      />
 
-        <main className="flex-1 p-6 md:p-10">
-          {/* WELCOME */}
-          <div className="mb-8">
-            <p className="text-blue-600 font-semibold text-sm">
-              GOOD MORNING 👋
-            </p>
+      {/* MAIN CONTENT */}
+      <main className="min-w-0 flex-1 overflow-y-auto">
 
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mt-2">
-              Welcome back, {username}
-            </h2>
+        {/* Top Header */}
+        <header className="border-b border-gray-200 bg-white px-6 py-5 md:px-8">
 
-            <p className="text-slate-500 mt-2">
-              Here's what's happening with your family's health today.
-            </p>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+
+            <div>
+              <p className="text-sm font-medium text-blue-600">
+                GOOD MORNING 👋
+              </p>
+
+              <h2 className="mt-1 text-2xl font-bold text-gray-900">
+                Welcome back{username ? `, ${username}` : ""}!
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Here's what's happening with your family's health today.
+              </p>
+            </div>
+
           </div>
-          {claims.map((claim) => {
-            const daysRemaining = getDaysRemaining(claim.renewal_date);
 
-            if (daysRemaining > 30) {
-              return null;
-            }
+        </header>
 
-            return (
-              <div
-                key={claim.id}
-                className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-5"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="text-3xl">🛡️</div>
+        <div className="space-y-6 p-6 md:p-8">
 
-                  <div>
-                    <h3 className="font-bold text-orange-800">
-                      Medical Claim Renewal Alert
-                    </h3>
+          {/* Error */}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
 
-                    <p className="text-sm text-orange-700 mt-1">
-                      {claim.claim_name} renewal is due on{" "}
-                      <strong>{claim.renewal_date}</strong>.
-                    </p>
+          {/* Medical Claim Alert */}
+          {upcomingClaim && (
+            <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
 
-                    <p className="text-sm font-semibold text-orange-800 mt-2">
-                      ⚠️ Renewal in {daysRemaining} days
-                    </p>
-                  </div>
+              <div className="flex items-start gap-4">
+
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
+                  🛡️
                 </div>
+
+                <div className="flex-1">
+
+                  <h3 className="font-semibold text-gray-900">
+                    Medical Claim Renewal Alert
+                  </h3>
+
+                  <p className="mt-1 text-sm text-gray-600">
+                    <strong>
+                      {upcomingClaim.claim_name}
+                    </strong>{" "}
+                    renewal is due on{" "}
+                    <strong>
+                      {upcomingClaim.renewal_date}
+                    </strong>.
+                  </p>
+
+                  <div className="mt-3 inline-flex rounded-lg bg-yellow-100 px-3 py-1.5 text-xs font-semibold text-yellow-700">
+                    ⚠️ Renewal in{" "}
+                    {upcomingClaim.daysRemaining}{" "}
+                    days
+                  </div>
+
+                </div>
+
               </div>
-            );
-          })}
 
-          {/* STAT CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <StatCard
-              icon="👨‍👩‍👧"
-              title="Family Members"
-              value={familyMembers.length}
-            />
+            </div>
+          )}
 
-            <StatCard
-              icon="💊"
-              title="Today's Medicines"
-              value={schedules.length}
-            />
+          {/* Statistics */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-            <StatCard
-              icon="✓"
-              title="Medicines Taken"
-              value={logs.filter((log) => log.status === "taken").length}
-              valueColor="text-emerald-600"
-            />
+            {/* Family */}
+            <button
+              type="button"
+              onClick={() => onNavigate("family")}
+              className="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            >
+              <div className="flex items-center justify-between">
 
-            <StatCard
-              icon="⏰"
-              title="Pending"
-              value={logs.filter((log) => log.status === "pending").length}
-              valueColor="text-orange-500"
-            />
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Family Members
+                  </p>
+
+                  <p className="mt-2 text-3xl font-bold text-gray-900">
+                    {familyMembers.length}
+                  </p>
+                </div>
+
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl">
+                  👨‍👩‍👧
+                </div>
+
+              </div>
+            </button>
+
+            {/* Medicines */}
+            <button
+              type="button"
+              onClick={() => onNavigate("medicines")}
+              className="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            >
+              <div className="flex items-center justify-between">
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Today's Medicines
+                  </p>
+
+                  <p className="mt-2 text-3xl font-bold text-gray-900">
+                    {todaysSchedules.length}
+                  </p>
+                </div>
+
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl">
+                  💊
+                </div>
+
+              </div>
+            </button>
+
+            {/* Taken */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+
+              <div className="flex items-center justify-between">
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Medicines Taken
+                  </p>
+
+                  <p className="mt-2 text-3xl font-bold text-gray-900">
+                    {takenCount}
+                  </p>
+                </div>
+
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl">
+                  ✓
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Pending */}
+            <button
+              type="button"
+              onClick={() => onNavigate("medicines")}
+              className="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            >
+              <div className="flex items-center justify-between">
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Pending
+                  </p>
+
+                  <p className="mt-2 text-3xl font-bold text-gray-900">
+                    {Math.max(pendingCount, 0)}
+                  </p>
+                </div>
+
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-xl">
+                  ⏰
+                </div>
+
+              </div>
+            </button>
+
           </div>
 
-          {/* TODAY'S MEDICINES */}
-          <div className="mt-8 bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  Today's Medicines
+          {/* Today's Medicines */}
+          <section>
+
+            <div className="mb-4">
+
+              <h2 className="text-xl font-bold text-gray-900">
+                Today's Medicines
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Keep track of today's medicine schedule.
+              </p>
+
+            </div>
+
+            {todaysSchedules.length === 0 ? (
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+
+                <div className="text-4xl">
+                  💊
+                </div>
+
+                <h3 className="mt-3 font-semibold text-gray-900">
+                  No medicines scheduled for today
                 </h3>
 
-                <p className="text-sm text-slate-500 mt-1">
-                  Keep track of today's medicine schedule.
+                <p className="mt-1 text-sm text-gray-500">
+                  Add a medicine schedule to start tracking.
                 </p>
+
               </div>
 
-              <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-sm font-medium">
-                {logs.filter((log) => log.status === "taken").length} Taken
-              </span>
-            </div>
-
-            {schedules.length > 0 ? (
-              schedules.map((schedule) => {
-                const medicine = medicines.find(
-                  (medicine) => medicine.id === schedule.medicine,
-                );
-
-                const log = logs.find((log) => log.schedule === schedule.id);
-
-                return (
-                  <MedicineCard
-                    key={schedule.id}
-                    name={medicine?.name || "Medicine"}
-                    dosage={schedule.dosage}
-                    mealRelation={schedule.meal_relation}
-                    time={schedule.time}
-                    status={log?.status || "pending"}
-                  />
-                );
-              })
             ) : (
-              <div className="text-center py-10 text-slate-500">
-                No medicines scheduled for today.
+
+              <div className="space-y-3">
+
+                {todaysSchedules.map((schedule) => {
+
+                  const medicine = getMedicine(
+                    schedule.medicine
+                  );
+
+                  const status =
+                    getScheduleStatus(
+                      schedule.id
+                    );
+
+                  return (
+                    <div
+                      key={schedule.id}
+                      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+                    >
+
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                        <div className="flex items-start gap-4">
+
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl">
+                            💊
+                          </div>
+
+                          <div>
+
+                            <h3 className="font-semibold text-gray-900">
+                              {medicine?.name ||
+                                "Medicine"}
+                            </h3>
+
+                            <p className="mt-1 text-sm text-gray-500">
+                              {schedule.dosage}
+                              {" • "}
+                              {schedule.meal_relation
+                                ?.replaceAll(
+                                  "_",
+                                  " "
+                                )}
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                        <div className="flex items-center gap-4">
+
+                          <div className="text-right">
+
+                            <p className="text-sm font-semibold text-gray-900">
+                              {formatTime(
+                                schedule.time
+                              )}
+                            </p>
+
+                            <p className="mt-1 text-xs text-gray-500">
+                              ⏰{" "}
+                              {status === "taken"
+                                ? "Taken"
+                                : status === "missed"
+                                ? "Missed"
+                                : "Pending"}
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+                  );
+                })}
+
               </div>
+
             )}
-          </div>
 
-          {/* QUICK ACTIONS */}
-          <div className="mt-8">
-            <h3 className="text-xl font-bold text-slate-900 mb-5">
-              Quick Actions
-            </h3>
+          </section>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <QuickActionCard
-                icon="👨‍👩‍👧"
-                title="Family Members"
-                description="Manage family profiles"
-                onClick={() => onNavigate("family")}
-              />
-              <QuickActionCard
-                icon="🛡️"
-                title="Medical Claims"
-                description="Track renewal dates"
-                onClick={() => onNavigate("claims")}
-              />
+          {/* Quick Actions */}
+          <section>
 
-              <QuickActionCard
-                icon="💊"
-                title="Medicines"
-                description="Manage medicine schedules"
-                onClick={() => onNavigate("medicines")}
-              />
+            <div className="mb-4">
 
-              <QuickActionCard
-                icon="❤️"
-                title="Health Records"
-                description="View health information"
-                onClick={() => onNavigate("health")}
-              />
+              <h2 className="text-xl font-bold text-gray-900">
+                Quick Actions
+              </h2>
 
-              <QuickActionCard
-                icon="✨"
-                title="AI Assistant"
-                description="Get health information assistance"
-                highlighted
-              />
             </div>
-          </div>
-        </main>
-      </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+              {/* Family */}
+              <button
+                type="button"
+                onClick={() => onNavigate("family")}
+                className="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <div className="text-2xl">
+                  👨‍👩‍👧
+                </div>
+
+                <h3 className="mt-4 font-semibold text-gray-900">
+                  Family Members
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Manage family profiles
+                </p>
+              </button>
+
+              {/* Claims */}
+              <button
+                type="button"
+                onClick={() => onNavigate("claims")}
+                className="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <div className="text-2xl">
+                  🛡️
+                </div>
+
+                <h3 className="mt-4 font-semibold text-gray-900">
+                  Medical Claims
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Track renewal dates
+                </p>
+              </button>
+
+              {/* Medicines */}
+              <button
+                type="button"
+                onClick={() => onNavigate("medicines")}
+                className="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <div className="text-2xl">
+                  💊
+                </div>
+
+                <h3 className="mt-4 font-semibold text-gray-900">
+                  Medicines
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Manage medicine schedules
+                </p>
+              </button>
+
+              {/* Health */}
+              <button
+                type="button"
+                onClick={() => onNavigate("health")}
+                className="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <div className="text-2xl">
+                  ❤️
+                </div>
+
+                <h3 className="mt-4 font-semibold text-gray-900">
+                  Health Records
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  View health information
+                </p>
+              </button>
+
+              {/* Documents */}
+              <button
+                type="button"
+                onClick={() => onNavigate("documents")}
+                className="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <div className="text-2xl">
+                  📄
+                </div>
+
+                <h3 className="mt-4 font-semibold text-gray-900">
+                  Documents
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Manage medical documents
+                </p>
+              </button>
+
+              {/* AI */}
+              <button
+                type="button"
+                onClick={() => onNavigate("ai")}
+                className="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <div className="text-2xl">
+                  ✨
+                </div>
+
+                <h3 className="mt-4 font-semibold text-gray-900">
+                  AI Assistant
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Get health information assistance
+                </p>
+              </button>
+
+            </div>
+
+          </section>
+
+        </div>
+
+      </main>
     </div>
   );
 }
